@@ -2,12 +2,16 @@
 #define FEA_UTILITIES_HPP
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <vector>
 #include <cmath>
 #include <utility>
 
 using namespace std;
+
+template <typename T>
+using Matrix = vector<vector<T>>; // Template alias declaration for a matrix
 
 struct Node {
     int number; 
@@ -25,7 +29,7 @@ Node::Node(int num) : number(num), x(0.0), dof1((num - 1)*2 + 1), dof2((num - 1)
 
 struct Element {
     int number; 
-    int length;
+    double length;
     pair<Node*, Node*> connectivity; // Use pair rather than vector since we assume two-node elements
 };
 
@@ -42,13 +46,19 @@ struct Load {
     double magnitude; // lbf for force and lb-in for moment
 };
 
+struct ElementStiffnessData {
+    Matrix<double> K_local;
+    Matrix<pair<int, int>> image; // Corresponding indices for global assembly (based on assembly vector)
+};
+
 // Prototypes
 void readMesh(ifstream& inputFile, ofstream& outputFile, vector<Node>& nodes, vector<Element>& elements); // Reads nodal coordinates and element connectivity from input file
 void readProperties(ifstream& inputFile, ofstream& outputFile, Properties& properties); // Reads beam properties from input file
 void readConstraints(ifstream& inputFile, ofstream& outputFile, vector<int> constraints); // Reads list of DOFs specified to be zero from input file
 void readLoads(ifstream& inputFile, ofstream& outputFile, vector<Load>& loads); // Reads load magnitudes and corresponding DOFs
-vector<int> getElementDOFs(Element& element); // Get the assembly vector for the given element
-void getElementK(Element& element); // Assemble the element stiffness matrix K_local
+vector<int> getElementDOFs(Element element); // Get the assembly vector for the given element
+ElementStiffnessData getElementK(ofstream& outputFile, Element element, Properties properties); // Assemble the element stiffness matrix K_local
+Matrix<pair<int, int>> getImageMatrix(const vector<int>& assemblyVector); // Helper function for getElementK that returns a matrix of integer pairs that represent the global positions of each item in the element stiffness matrix K_local
 void assembleGlobalStiffnessMatrix(); // Assemble the global stiffness matrix K_global
 void imposeConstraints(); // Use penalty method to impose kinematic BC's
 void solver(); // Solve linear algebraic equations
@@ -178,7 +188,7 @@ void readLoads(ifstream& inputFile, ofstream& outputFile, vector<Load>& loads) {
 }
 
 ///////////////////////////////////////////////////////////////////////////Part 2a///////////////////////////////////////////////////////////////////////////////////////////////
-vector<int> getElementDOFs(Element& element) {
+vector<int> getElementDOFs(Element element) {
     Node* leftNode = element.connectivity.first;
     Node* rightNode = element.connectivity.second;
 
@@ -187,8 +197,78 @@ vector<int> getElementDOFs(Element& element) {
     return assemblyVector;
 }
 
-void getElementK(Element& element) {
+ElementStiffnessData getElementK(ofstream& outputFile, Element element, Properties properties) {
     vector <int> assemblyVector = getElementDOFs(element);
+    double L = element.length;
+    double L_2 = pow(L, 2);
+    double L_3 = pow(L, 3);
+    double E = properties.youngsModulus;
+    double I_z = (properties.width * pow(properties.height, 3))/12;
+
+    Matrix<double> K_local = {
+        {12/L_3, 6/L_2, -12/L_3, 6/L_2}, 
+        {6/L_2, 4/L, -6/L_2, 2/L},
+        {-12/L_3, -6/L_2, 12/L_3, -6/L_2},
+        {6/L_2, 2/L, -6/L_2, 4/L}
+    };
+
+    for (size_t i = 0; i < assemblyVector.size(); i++) {
+        for (size_t j = 0; j < assemblyVector.size(); j++) {
+            K_local[i][j] *= (E*I_z);
+        }
+    }
+
+    Matrix<pair<int, int>> image = getImageMatrix(assemblyVector);
+
+    // Package data
+    ElementStiffnessData result;
+    result.K_local = K_local;
+    result.image = image;
+
+
+    // Echo print element stiffness matrix
+    cout << setw(1) << "";
+    for (int dof : assemblyVector) {
+        cout << setw(12) << dof;
+    }
+    cout << endl;
+    cout << string(56, '-') << endl;
+
+    for (size_t i = 0; i < assemblyVector.size(); i++) {
+        cout << setw(2) << assemblyVector[i] << " | ";
+        for (size_t j = 0; j < assemblyVector.size(); j++) {
+            cout << scientific << setw(12) << setprecision(4) << K_local[i][j] << " ";
+        }
+        cout << endl;
+    }
+
+    outputFile << setw(1) << "";
+    for (int dof : assemblyVector) {
+        outputFile << setw(12) << dof;
+    }
+    outputFile << endl;
+    outputFile << string(56, '-') << endl;
+
+    for (size_t i = 0; i < assemblyVector.size(); i++) {
+        outputFile << setw(2) << assemblyVector[i] << " | ";
+        for (size_t j = 0; j < assemblyVector.size(); j++) {
+            outputFile << scientific << setw(12) << setprecision(4) << K_local[i][j] << " ";
+        }
+        outputFile << endl;
+    }
+
+    return result;
+}
+
+Matrix<pair<int, int>> getImageMatrix(const vector<int>& assemblyVector) {
+    Matrix<pair<int, int>> image(4, vector<pair<int, int>>(4, make_pair(0 ,0)));
+
+    for (size_t i = 0; i < assemblyVector.size(); i++) {
+        for (size_t j = 0; j < assemblyVector.size(); j++) {
+            image[i][j] = make_pair(assemblyVector[i], assemblyVector[j]);
+        }
+    }
+    return image;
 }
 
 void assembleGlobalStiffnessMatrix() {}

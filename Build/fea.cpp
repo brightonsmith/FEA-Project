@@ -27,7 +27,18 @@ int main() {
     readLoads(inputFile, outputFile, loads);
 
     inputFile.close();
-    outputFile.close();
 
+    vector<ElementStiffnessData> elementStiffnessDataVector;
+
+    for (size_t i = 0; i < elements.size(); i++) {
+        cout << endl;
+        outputFile << endl;
+        cout << "Element " << i + 1 << " stiffness matrix: " << endl;
+        outputFile << "Element " << i + 1 << " stiffness matrix: " << endl;
+        ElementStiffnessData elementStiffnessData = getElementK(outputFile, elements[i], properties);
+        elementStiffnessDataVector.push_back(elementStiffnessData);
+    }
+    outputFile.close();
+    
     return 0;
 }
