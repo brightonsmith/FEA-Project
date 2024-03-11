@@ -18,7 +18,7 @@ int main() {
     vector<Node> nodes;
     vector<Element> elements;
     vector<Load> loads;
-    Constraints constraints;
+    vector<int> constraints;
     Properties properties;
 
     readMesh(inputFile, outputFile, nodes, elements);

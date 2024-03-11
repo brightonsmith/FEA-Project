@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <utility>
 
 using namespace std;
 
@@ -24,7 +25,8 @@ Node::Node(int num) : number(num), x(0.0), dof1((num - 1)*2 + 1), dof2((num - 1)
 
 struct Element {
     int number; 
-    vector<int> connectivity;
+    int length;
+    pair<Node*, Node*> connectivity; // Use pair rather than vector since we assume two-node elements
 };
 
 struct Properties {
@@ -33,10 +35,7 @@ struct Properties {
     double width; // in
 };
 
-struct Constraints {
-    int number;
-    vector<int> zeroDOFs;
-};
+// No Constraint struct because constraints can be represented as a single vector 
 
 struct Load {
     int dof;
@@ -46,14 +45,16 @@ struct Load {
 // Prototypes
 void readMesh(ifstream& inputFile, ofstream& outputFile, vector<Node>& nodes, vector<Element>& elements); // Reads nodal coordinates and element connectivity from input file
 void readProperties(ifstream& inputFile, ofstream& outputFile, Properties& properties); // Reads beam properties from input file
-void readConstraints(ifstream& inputFile, ofstream& outputFile, Constraints& constraints); // Reads list of dof specified to be zero from input file
+void readConstraints(ifstream& inputFile, ofstream& outputFile, vector<int> constraints); // Reads list of DOFs specified to be zero from input file
 void readLoads(ifstream& inputFile, ofstream& outputFile, vector<Load>& loads); // Reads load magnitudes and corresponding DOFs
-void assembleGlobalStiffnessMatrix();
-void imposeConstraints();
-void solver();
-void reportResults();
+vector<int> getElementDOFs(Element& element); // Get the assembly vector for the given element
+void getElementK(Element& element); // Assemble the element stiffness matrix K_local
+void assembleGlobalStiffnessMatrix(); // Assemble the global stiffness matrix K_global
+void imposeConstraints(); // Use penalty method to impose kinematic BC's
+void solver(); // Solve linear algebraic equations
+void reportResults(); // Output to console and output file
 
-/////////////////////////////////////////////////////////////Part 1/////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////Part 1/////////////////////////////////////////////////////////////////////////////////////////////// 
 void readMesh(ifstream& inputFile, ofstream& outputFile, vector<Node>& nodes, vector<Element>& elements) {
     cout << "MESH:" << endl;
     outputFile << "MESH:" << endl;
@@ -86,18 +87,26 @@ void readMesh(ifstream& inputFile, ofstream& outputFile, vector<Node>& nodes, ve
         cout << "Element " << elements[i].number << " connectivity: "; // Echo print element number
         outputFile << "Element " << elements[i].number << " connectivity: ";
 
-        int nodeNumber;
-        while (inputFile >> nodeNumber) {
-            elements[i].connectivity.push_back(nodeNumber);
-            cout << nodeNumber << " "; // Echo print node number
-            outputFile << nodeNumber << " ";
+        int leftNodeNum, rightNodeNum;
+        inputFile >> leftNodeNum >> rightNodeNum;
 
-            if (inputFile.peek() == '\n') {
-                break;
-            }
+        // This block assigns the nodal pair contained in the current element to pointers of actual nodes
+        Node* leftNode = nullptr;
+        Node* rightNode = nullptr;
+        for (int i = 0; i < numNodes; i++) { // Use size_t when using size() method in loop
+            if (nodes[i].number == leftNodeNum)
+                leftNode = &nodes[i];
+            if (nodes[i].number == rightNodeNum)
+                rightNode = &nodes[i];
         }
-        cout << endl;
-        outputFile << endl;
+        elements[i].connectivity = make_pair(leftNode, rightNode);
+
+        cout << leftNode->number << " " << rightNode->number << endl; // Echo print left and right node numbers
+        outputFile << leftNode->number << " " << rightNode->number << endl;
+
+        if (leftNode && rightNode) {
+            elements[i].length = rightNode->x - leftNode->x;
+        }
     }
     cout << endl;
     outputFile << endl;
@@ -119,27 +128,25 @@ void readProperties(ifstream& inputFile, ofstream& outputFile, Properties& prope
     outputFile << "Width: " << properties.width << " in" << endl << endl;
 }
 
-void readConstraints(ifstream& inputFile, ofstream& outputFile, Constraints& constraints) {
+void readConstraints(ifstream& inputFile, ofstream& outputFile, vector<int> constraints) {
     cout << "CONSTRAINTS: " << endl;
     outputFile << "CONSTRAINTS: " << endl;
 
-    inputFile >> constraints.number;
+    int numConstraints;
+    inputFile >> numConstraints;
 
-    cout << "Number of DOFs specified to be zero: " << constraints.number << endl; // Echo print number of constraints
+    cout << "Number of DOFs specified to be zero: " << numConstraints << endl; // Echo print number of constraints
     cout << "DOFs specified to be zero: ";
 
-    outputFile << "Number of DOFs specified to be zero: " << constraints.number << endl;
+    outputFile << "Number of DOFs specified to be zero: " << numConstraints << endl;
     outputFile << "DOFs specified to be zero: ";
 
-    int DOF_num;
-    while (inputFile >> DOF_num) {
-        constraints.zeroDOFs.push_back(DOF_num);
-        cout << DOF_num << " "; // Echo print DOF number
-        outputFile << DOF_num << " ";
 
-        if (inputFile.peek() == '\n') {
-            break;
-        }
+    constraints.resize(numConstraints);
+    for (int i = 0; i < numConstraints; i++) {
+        inputFile >> constraints[i];
+        cout << constraints[i] << " "; // Echo print constraint number
+        outputFile << constraints[i] << " ";
     }
     cout << endl << endl;
     outputFile << endl << endl;
@@ -170,12 +177,25 @@ void readLoads(ifstream& inputFile, ofstream& outputFile, vector<Load>& loads) {
     }
 }
 
-/////////////////////////////////////////////////////////////Part 2a////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////Part 2a///////////////////////////////////////////////////////////////////////////////////////////////
+vector<int> getElementDOFs(Element& element) {
+    Node* leftNode = element.connectivity.first;
+    Node* rightNode = element.connectivity.second;
+
+    vector<int> assemblyVector = {leftNode->dof1, leftNode->dof2, rightNode->dof1, rightNode->dof2};
+
+    return assemblyVector;
+}
+
+void getElementK(Element& element) {
+    vector <int> assemblyVector = getElementDOFs(element);
+}
+
 void assembleGlobalStiffnessMatrix() {}
 
 void imposeConstraints() {}
 
-/////////////////////////////////////////////////////////////Part 2b////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////Part 2b///////////////////////////////////////////////////////////////////////////////////////////////
 void solver() {}
 
 void reportResults() {}
