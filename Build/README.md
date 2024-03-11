@@ -9,9 +9,9 @@ This is a basic program to perform finite element analysis on a beam.
 ## Usage
 
 1. Open Windows PowerShell.
-2. Navigate to the directory `FEA-Project/Build` using `cd "Your/path/to/FEA-Project/Build"`.
+2. Navigate to the directory `Brighton Smith` using `cd "Your/path/to/Brighton Smith"`.
 3. Type `./fea.bat` and press Enter to compile and run the program.
-4. The output file `outputFile.txt` will be generated in the `FEA-Project/Build` directory.
+4. The output file `outputFile.txt` will be generated in the `Brighton Smith` directory.
 
 ## Input File Format
 
@@ -30,4 +30,4 @@ The input file follows this format:
 - `number of point loads`
 - `DOF`   `load`
 
-Edit `inputFile.txt` in the `FEA-Project/Build` directory to modify the beam problem.
+Edit `inputFile.txt` in the `Brighton Smith` directory to modify the beam problem.
