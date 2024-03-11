@@ -31,3 +31,7 @@ The input file follows this format:
 - `DOF`   `load`
 
 Edit `inputFile.txt` in the `FEA-Project/Build` directory to modify the beam problem.
+
+## Notes
+
+The zip folders represent the stages this project was submitted in. The final product is contained in the `FEA-Project/Build` directory.
