@@ -7,9 +7,7 @@ if %errorlevel% neq 0 (
     echo Compilation failed.
     exit /b %errorlevel%
 )
+@echo Done.
 
 @echo on
 fea.exe
-
-@echo.
-@echo Done.

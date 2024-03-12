@@ -40,14 +40,16 @@ int main() {
     }
 
     int numDOFs = (nodes.size())*2;
-    Matrix<double> K_global(numDOFs, vector<double>(numDOFs, 0.0));
-
+    MatrixXd K_global = MatrixXd::Zero(numDOFs, numDOFs);
+    
     assembleGlobalStiffnessMatrix(outputFile, K_global, elementStiffnessDataVector);
     imposeConstraints(outputFile, K_global, constraints);
 
-    vector<double> F_global(numDOFs, 0.0);
+    VectorXd F_global = VectorXd::Zero(numDOFs);
 
     assembleGlobalLoadVector(outputFile, F_global, loads);
+    solver(K_global, F_global, nodes);
+    reportResults(outputFile, nodes);
     
     outputFile.close();
     
