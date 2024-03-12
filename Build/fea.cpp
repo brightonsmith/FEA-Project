@@ -33,11 +33,22 @@ int main() {
     for (size_t i = 0; i < elements.size(); i++) {
         cout << endl;
         outputFile << endl;
-        cout << "Element " << i + 1 << " stiffness matrix: " << endl;
-        outputFile << "Element " << i + 1 << " stiffness matrix: " << endl;
+        cout << "Element " << i + 1 << " stiffness matrix:" << endl;
+        outputFile << "Element " << i + 1 << " stiffness matrix:" << endl;
         ElementStiffnessData elementStiffnessData = getElementK(outputFile, elements[i], properties);
         elementStiffnessDataVector.push_back(elementStiffnessData);
     }
+
+    int numDOFs = (nodes.size())*2;
+    Matrix<double> K_global(numDOFs, vector<double>(numDOFs, 0.0));
+
+    assembleGlobalStiffnessMatrix(outputFile, K_global, elementStiffnessDataVector);
+    imposeConstraints(outputFile, K_global, constraints);
+
+    vector<double> F_global(numDOFs, 0.0);
+
+    assembleGlobalLoadVector(outputFile, F_global, loads);
+    
     outputFile.close();
     
     return 0;

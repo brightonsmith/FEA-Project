@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++11
+CXXFLAGS = -Wall -Wextra -Werror -std=c++11 -I"../Include"
 
 # Target: fea
 fea: fea.cpp fea_utilities.hpp

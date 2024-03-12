@@ -6,7 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
-#include <utility>
+#include <Eigen/Core>
 
 using namespace std;
 
@@ -54,13 +54,15 @@ struct ElementStiffnessData {
 // Prototypes
 void readMesh(ifstream& inputFile, ofstream& outputFile, vector<Node>& nodes, vector<Element>& elements); // Reads nodal coordinates and element connectivity from input file
 void readProperties(ifstream& inputFile, ofstream& outputFile, Properties& properties); // Reads beam properties from input file
-void readConstraints(ifstream& inputFile, ofstream& outputFile, vector<int> constraints); // Reads list of DOFs specified to be zero from input file
+void readConstraints(ifstream& inputFile, ofstream& outputFile, vector<int>& constraints); // Reads list of DOFs specified to be zero from input file
 void readLoads(ifstream& inputFile, ofstream& outputFile, vector<Load>& loads); // Reads load magnitudes and corresponding DOFs
-vector<int> getElementDOFs(Element element); // Get the assembly vector for the given element
-ElementStiffnessData getElementK(ofstream& outputFile, Element element, Properties properties); // Assemble the element stiffness matrix K_local
+vector<int> getElementDOFs(const Element& element); // Get the assembly vector for the given element
+ElementStiffnessData getElementK(ofstream& outputFile, const Element& element, const Properties& properties); // Assemble the element stiffness matrix K_local
 Matrix<pair<int, int>> getImageMatrix(const vector<int>& assemblyVector); // Helper function for getElementK that returns a matrix of integer pairs that represent the global positions of each item in the element stiffness matrix K_local
-void assembleGlobalStiffnessMatrix(); // Assemble the global stiffness matrix K_global
-void imposeConstraints(); // Use penalty method to impose kinematic BC's
+void assembleGlobalStiffnessMatrix(ofstream& outputFile, const vector<ElementStiffnessData>& elementStiffnessDataVector); // Assemble the global stiffness matrix K_global
+void imposeConstraints(ofstream& outputFile, Matrix<double>& K_global, const vector<int>& constraints); // Use penalty method to impose kinematic BC's
+void outputGlobalStiffnessMatrix(ofstream& outputFile, const Matrix<double>& K_global); // Helper function to print K_global to console and output file
+void assembleGlobalLoadVector(ofstream& outputFile, vector<double> F_global, const vector<Load>& loads); // Assemble the global load vector F_global
 void solver(); // Solve linear algebraic equations
 void reportResults(); // Output to console and output file
 
@@ -138,7 +140,7 @@ void readProperties(ifstream& inputFile, ofstream& outputFile, Properties& prope
     outputFile << "Width: " << properties.width << " in" << endl << endl;
 }
 
-void readConstraints(ifstream& inputFile, ofstream& outputFile, vector<int> constraints) {
+void readConstraints(ifstream& inputFile, ofstream& outputFile, vector<int>& constraints) {
     cout << "CONSTRAINTS: " << endl;
     outputFile << "CONSTRAINTS: " << endl;
 
@@ -188,7 +190,7 @@ void readLoads(ifstream& inputFile, ofstream& outputFile, vector<Load>& loads) {
 }
 
 ///////////////////////////////////////////////////////////////////////////Part 2a///////////////////////////////////////////////////////////////////////////////////////////////
-vector<int> getElementDOFs(Element element) {
+vector<int> getElementDOFs(const Element& element) {
     Node* leftNode = element.connectivity.first;
     Node* rightNode = element.connectivity.second;
 
@@ -197,7 +199,7 @@ vector<int> getElementDOFs(Element element) {
     return assemblyVector;
 }
 
-ElementStiffnessData getElementK(ofstream& outputFile, Element element, Properties properties) {
+ElementStiffnessData getElementK(ofstream& outputFile, const Element& element, const Properties& properties) {
     vector <int> assemblyVector = getElementDOFs(element);
     double L = element.length;
     double L_2 = pow(L, 2);
@@ -227,12 +229,12 @@ ElementStiffnessData getElementK(ofstream& outputFile, Element element, Properti
 
 
     // Echo print element stiffness matrix
-    cout << setw(1) << "";
+    cout << setw(0) << "";
     for (int dof : assemblyVector) {
-        cout << setw(12) << dof;
+        cout << setw(13) << dof;
     }
     cout << endl;
-    cout << string(56, '-') << endl;
+    cout << string((assemblyVector.size())*14, '-') << endl;
 
     for (size_t i = 0; i < assemblyVector.size(); i++) {
         cout << setw(2) << assemblyVector[i] << " | ";
@@ -242,12 +244,12 @@ ElementStiffnessData getElementK(ofstream& outputFile, Element element, Properti
         cout << endl;
     }
 
-    outputFile << setw(1) << "";
+    outputFile << setw(0) << "";
     for (int dof : assemblyVector) {
-        outputFile << setw(12) << dof;
+        outputFile << setw(13) << dof;
     }
     outputFile << endl;
-    outputFile << string(56, '-') << endl;
+    outputFile << string((assemblyVector.size())*14, '-') << endl;
 
     for (size_t i = 0; i < assemblyVector.size(); i++) {
         outputFile << setw(2) << assemblyVector[i] << " | ";
@@ -265,15 +267,105 @@ Matrix<pair<int, int>> getImageMatrix(const vector<int>& assemblyVector) {
 
     for (size_t i = 0; i < assemblyVector.size(); i++) {
         for (size_t j = 0; j < assemblyVector.size(); j++) {
-            image[i][j] = make_pair(assemblyVector[i], assemblyVector[j]);
+            image[i][j] = make_pair(assemblyVector[i] - 1, assemblyVector[j] - 1);
         }
     }
     return image;
 }
 
-void assembleGlobalStiffnessMatrix() {}
+void assembleGlobalStiffnessMatrix(ofstream& outputFile, Matrix<double>& K_global, const vector<ElementStiffnessData>& elementStiffnessDataVector) {
+    for (size_t i = 0; i < elementStiffnessDataVector.size(); i++) {
+        Matrix<double> K_local = elementStiffnessDataVector[i].K_local;
+        Matrix <pair<int, int>> image = elementStiffnessDataVector[i].image;
+        for (size_t j = 0; j < K_local.size(); j++) {
+            for (size_t k = 0; k < K_local.size(); k++) {
+                int row = image[j][k].first;
+                int col = image[j][k].second;
+                K_global[row][col] += K_local[j][k];
+            }
+        }
+    }
 
-void imposeConstraints() {}
+    cout << endl;
+    cout << "Global stiffness matrix:" << endl;
+
+    outputFile << endl;
+    outputFile << "Global stiffness matrix:" << endl;
+    
+    outputGlobalStiffnessMatrix(outputFile, K_global);
+}
+
+void imposeConstraints(ofstream& outputFile, Matrix<double>& K_global, const vector<int>& constraints) {
+    double penalty = 1e30;
+    for (size_t i = 0; i < constraints.size(); i++) {
+        int index = constraints[i] - 1;
+        K_global[index][index] += penalty;
+    }
+
+    cout << endl;
+    cout << "Global stiffness matrix with constraints imposed:" << endl;
+
+    outputFile << endl;
+    outputFile << "Global stiffness matrix with constraints imposed:" << endl;
+
+    outputGlobalStiffnessMatrix(outputFile, K_global);
+}
+
+void outputGlobalStiffnessMatrix(ofstream& outputFile, const Matrix<double>& K_global) {
+    // Echo print global stiffness matrix
+    cout << setw(0) << "";
+    for (size_t i = 1; i <= K_global.size(); i++) {
+        cout << setw(13) << i;
+    }
+    cout << endl;
+    cout << string((K_global.size())*14, '-') << endl;
+
+    for (size_t i = 0; i < K_global.size(); i++) {
+        cout << setw(2) << i + 1 << " | ";
+        for (size_t j = 0; j < K_global.size(); j++) {
+            cout << scientific << setw(12) << setprecision(4) << K_global[i][j] << " ";
+        }
+        cout << endl;
+    }
+
+    outputFile << setw(0) << "";
+    for (size_t i = 1; i <= K_global.size(); i++) {
+        outputFile << setw(13) << i;
+    }
+    outputFile << endl;
+    outputFile << string((K_global.size())*14, '-') << endl;
+
+    for (size_t i = 0; i < K_global.size(); i++) {
+        outputFile << setw(2) << i + 1 << " | ";
+        for (size_t j = 0; j < K_global.size(); j++) {
+            outputFile << scientific << setw(12) << setprecision(4) << K_global[i][j] << " ";
+        }
+        outputFile << endl;
+    }
+}
+
+void assembleGlobalLoadVector(ofstream& outputFile, vector<double> F_global, const vector<Load>& loads) {
+    for (size_t i = 0; i < loads.size(); i++) {
+        int dof = loads[i].dof;
+        double magnitude = loads[i].magnitude;
+        F_global[dof - 1] += magnitude;
+    }
+
+    // Echo print global load vector
+    cout << endl;
+    cout << "Global load vector:" << endl;
+    for (size_t i = 0; i < F_global.size(); i++) {
+        cout << setw(2) << i + 1 << " | ";
+        cout << scientific << setw(12) << setprecision(4) << F_global[i] << " " << endl;
+    }
+
+    outputFile << endl;
+    outputFile << "Global load vector:" << endl;
+    for (size_t i = 0; i < F_global.size(); i++) {
+        outputFile << setw(2) << i + 1 << " | ";
+        outputFile << scientific << setw(12) << setprecision(4) << F_global[i] << " " << endl;
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////Part 2b///////////////////////////////////////////////////////////////////////////////////////////////
 void solver() {}
