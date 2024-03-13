@@ -8,8 +8,8 @@ This is a basic program to perform finite element analysis on a beam.
 
 ## Requirements
 
-- A standard C++ environment with a g++ compiler is required
-- The non-standard library in use, Eigen/Dense, has been included in the `FEA-Project` directory. The full version of Eigen is available to download ([here](https://eigen.tuxfamily.org/index.php?title=Main_Page#Download))
+- A standard C++ environment with a g++ compiler is required.
+- The non-standard library in use, Eigen/Dense, has been included in the `FEA-Project` directory. The full version of Eigen is available to download ([here](https://eigen.tuxfamily.org/index.php?title=Main_Page#Download)), but it's not necessary to run this program.
 
 ## Usage
 
@@ -24,8 +24,8 @@ This is a basic program to perform finite element analysis on a beam.
 
 1. Open Bash.
 2. Navigate to the directory `FEA-Project/Build` using `cd "Your/path/to/FEA-Project/Build"`.
-3. Type `make` and press Enter to compile the program
-4. Type `./fea` and press Enter to run the program
+3. Type `make` and press Enter to compile the program.
+4. Type `./fea` and press Enter to run the program.
 5. The output file `outputFile.txt` will be generated in the `FEA-Project/Build` directory.
 
 ## Input File Format
@@ -57,7 +57,7 @@ Edit `inputFile.txt` in the `FEA-Project/Build` directory to modify the beam pro
 
 ## Additional Updates for Future Versions
 
-- Add support for distributed loads
-- Add support for labels in the input file
-- Calculate exact forces at element boundaries using the variationally consistent method
-- Display plots of deflection, moment, and shear force
+- Add support for distributed/thermal loads.
+- Add support for labels in the input file.
+- Calculate exact forces at element boundaries using the variationally consistent method.
+- Display plots of deflection, moment, and shear force.
