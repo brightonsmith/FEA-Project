@@ -53,7 +53,6 @@ Edit `inputFile.txt` in the `FEA-Project/Build` directory to modify the beam pro
 - This project assumes a rectangular cross-sectional area.
 - Height, width, and nodal coordinates are assumed to be given in inches.
 - Forces are assumed to be given in lbf, while moments are assumed to be given in lb-in.
-- The zip folders represent the stages this project was submitted in. The final product is contained in the `FEA-Project/Build` directory.
 
 ## Additional Updates for Future Versions
 

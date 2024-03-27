@@ -1,0 +1,14 @@
+# Ignore compiled files
+Build/fea
+Build/fea.exe
+
+# Ignore IDE files
+*.vscode
+
+# Ignore output files
+Build/outputFile.txt
+
+# Ignore miscellaneous
+*.zip
+*.docx
+*.pdf
