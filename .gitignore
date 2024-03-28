@@ -9,6 +9,4 @@ Build/fea.exe
 Build/outputFile.txt
 
 # Ignore miscellaneous
-*.zip
-*.docx
-*.pdf
+Misc 
