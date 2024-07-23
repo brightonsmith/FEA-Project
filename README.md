@@ -16,17 +16,17 @@ This is a basic program to perform finite element analysis on a beam.
 ### Windows
 
 1. Open Windows PowerShell.
-2. Navigate to the directory `FEA-Project/Build` using `cd "Your/path/to/FEA-Project/Build"`.
+2. Navigate to the directory `FEA-Project/src` using `cd "Your/path/to/src"`.
 3. Type `./fea.bat` and press Enter to compile and run the program.
-4. The output file `outputFile.txt` will be generated in the `FEA-Project/Build` directory.
+4. The output file `outputFile.txt` will be generated in the `FEA-Project/src` directory.
 
 ### Linux
 
 1. Open Bash.
-2. Navigate to the directory `FEA-Project/Build` using `cd "Your/path/to/FEA-Project/Build"`.
+2. Navigate to the directory `FEA-Project/src` using `cd "Your/path/to/FEA-Project/src"`.
 3. Type `make` and press Enter to compile the program.
 4. Type `./fea` and press Enter to run the program.
-5. The output file `outputFile.txt` will be generated in the `FEA-Project/Build` directory.
+5. The output file `outputFile.txt` will be generated in the `FEA-Project/src` directory.
 
 ## Input File Format
 
