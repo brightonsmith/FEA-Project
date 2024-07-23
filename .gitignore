@@ -1,12 +1,12 @@
 # Ignore compiled files
-Build/fea
-Build/fea.exe
+src/fea
+src/fea.exe
 
 # Ignore IDE files
 *.vscode
 
 # Ignore output files
-Build/outputFile.txt
+src/outputFile.txt
 
 # Ignore miscellaneous
 Misc 
